@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef /*, useContext */ } from 'react'
 import {
   HTTPMethod,
   UseFetch,
@@ -12,8 +12,10 @@ import {
 import { BodyOnly, FetchData, NoArgs } from './types'
 import useFetchArgs from './useFetchArgs'
 import useSSR from 'use-ssr'
-import makeRouteAndOptions from './makeRouteAndOptions'
+import makeFetchArgs from './makeFetchArgs'
+// import { SimpleCache, createResource } from 'simple-cache-provider'
 import { isEmpty, invariant } from './utils'
+
 
 const responseMethods = ['clone', 'error', 'redirect', 'arrayBuffer', 'blob', 'formData', 'json', 'text']
 
@@ -24,10 +26,71 @@ const makeResponseProxy = (res = {}) => new Proxy(res, {
   }
 })
 
+// CACHE!
+let responsesCache = new Map();
+let pendingRequestsCache = new Map();
+// function createResource(promise, getKey = x => x) {
+//   return {
+//     read(obj) {
+//       console.log('CACHE', cache)
+//       const key = getKey(obj);
+//       console.log('OBJ', obj)
+//       console.log('KEY', key)
+//       console.log('CASH HAS KEY', cache.has(key))
+//       if (cache.has(key)) {
+//         console.log('cache hit', cache.get(key));
+//         return cache.get(key);
+//       }
+//       if (pending.has(key)) {
+//         console.log('pending hit', pending.get(key));
+//         throw pending.get(key);
+//       }
+//       console.log('cache miss');
+//       let p = promise(obj).then(val => {
+//         pending.delete(key);
+//         cache.set(key, val);
+//       });
+//       pending.set(key, p);
+//       throw p;
+//     },
+//     flush() {
+//       cache = new Map();
+//       pending = new Map();
+//     },
+//     refetch(key) {
+//       cache.delete(key);
+//       this.read(key);
+//     },
+//   };
+// }
+// interface FetchCache {
+//   bodyUsed?: boolean;
+//   contentType?: null | string;
+//   fetch?: Promise<void>;
+//   error?: any;
+//   headers?: Headers;
+//   init: RequestInit | undefined;
+//   input: RequestInfo;
+//   ok?: boolean;
+//   redirected?: boolean;
+//   response?: any;
+//   status?: number;
+//   statusText?: string;
+//   url?: string;
+// }
+
+// const caches: FetchCache[] = [];
+
+
+const sleep = (ms = 0) => new Promise(r => setTimeout(r, ms))
+
+// const caches = []
+
+
 function useFetch<TData = any>(...args: UseFetchArgs): UseFetch<TData> {
   const { customOptions, requestInit, defaults } = useFetchArgs(...args)
   const {
-    url,
+    url: initialURL,
     onMount,
     onUpdate,
     path,
@@ -36,7 +99,10 @@ function useFetch<TData = any>(...args: UseFetchArgs): UseFetch<TData> {
     retries,
     onTimeout,
     onAbort,
+    suspense,
+    // cachePolicy
   } = customOptions
+  // const cache = useContext(SimpleCache)
 
   const { isServer } = useSSR()
 
@@ -49,32 +115,22 @@ function useFetch<TData = any>(...args: UseFetchArgs): UseFetch<TData> {
   const [loading, setLoading] = useState(defaults.loading)
   const [error, setError] = useState<any>()
 
-  const makeFetch = useCallback((method: HTTPMethod): FetchData => {
-    
-    const doFetch = async (
-      routeOrBody?: string | BodyInit | object,
-      body?: BodyInit | object,
-    ): Promise<any> => {
-      if (isServer) return // for now, we don't do anything on the server
-      controller.current = new AbortController()
-      controller.current.signal.onabort = onAbort
-      const theController = controller.current
+  const makeFetch = useCallback((method: HTTPMethod /*, isSuspense?: boolean = false */): FetchData => {
 
-      setLoading(true)
-      setError(undefined)
+    let promise: any
+    // The requestKeys are used to identify duplicate requests.
+    let requestKey: any
 
-      let { route, options } = await makeRouteAndOptions(
-        requestInit,
-        method,
-        theController,
-        routeOrBody,
-        body,
-        interceptors.request,
-      )
+    const customFetch = async (url: string, options: any): Promise<any> => {
+      console.log('------- custom fetch start --------')
+      if (!loading) setLoading(true)
+      if (error) setError(undefined)
 
       const timer = timeout > 0 && setTimeout(() => {
         timedout.current = true;
-        theController.abort()
+        // theController.abort()
+        // (controller.current as AbortController).abort()
+        request.abort()
         if (onTimeout) onTimeout()
       }, timeout)
 
@@ -82,7 +138,12 @@ function useFetch<TData = any>(...args: UseFetchArgs): UseFetch<TData> {
       let theRes
 
       try {
-        theRes = ((await fetch(`${url}${path}${route}`, options)) || {}) as Res<TData>
+        pendingRequestsCache.set(requestKey, promise)
+        console.log('requestKey', requestKey)
+        console.log('promise', promise)
+        console.log('pending req cache', pendingRequestsCache)
+        theRes = await fetch(url, options) as Res<TData>
+        // console.log('res', theRes)
         res.current = theRes.clone()
 
         try {
@@ -100,7 +161,8 @@ function useFetch<TData = any>(...args: UseFetchArgs): UseFetch<TData> {
         data.current = res.current.data as TData
 
       } catch (err) {
-        if (attempts.current > 0) return doFetch(routeOrBody, body)
+        console.log('error', err)
+        if (attempts.current > 0) return customFetch(url, options)
         if (attempts.current < 1 && timedout.current) setError({ name: 'AbortError', message: 'Timeout Error' })
         if (err.name !== 'AbortError') setError(err)
 
@@ -109,14 +171,69 @@ function useFetch<TData = any>(...args: UseFetchArgs): UseFetch<TData> {
         timedout.current = false
         if (timer) clearTimeout(timer)
         controller.current = undefined
+
+        // console.log('data', theData)
+        pendingRequestsCache.delete(requestKey)
+        responsesCache.set(requestKey, res.current)
+
         setLoading(false)
       }
       return data.current
     }
 
+    const doFetch = async (
+      routeOrBody?: string | BodyInit | object,
+      body?: BodyInit | object,
+    ): Promise<any> => {
+      console.log('------- do fetch start --------')
+      if (isServer) return // for now, we don't do anything on the server
+      controller.current = new AbortController()
+      controller.current.signal.onabort = onAbort
+      const theController = controller.current
+
+      let { url, options } = await makeFetchArgs(
+        requestInit,
+        method,
+        theController,
+        initialURL,
+        path,
+        routeOrBody,
+        body,
+        interceptors.request
+      )
+
+      requestKey = Object.entries({ url, method, body: options.body || ''})
+        .map(([key, value]) => `${key}:${value}`).join('||')
+      promise = async () => await customFetch(url, options)
+      // console.log('PROMISE: ', promise)
+
+      console.log('finished response cache', responsesCache)
+      if (responsesCache.has(requestKey)) {
+        console.log('in cache', responsesCache.get(requestKey))
+        return responsesCache.get(requestKey)
+      }
+
+      console.log('pending request cache', pendingRequestsCache)
+      if (pendingRequestsCache.has(requestKey)) {
+        console.log('is pending', pendingRequestsCache.get(requestKey))
+        if (suspense) throw pendingRequestsCache.get(requestKey)
+        return await pendingRequestsCache.get(requestKey)
+      }
+
+      // pendingRequestsCache.set(requestKey, promise)
+
+      const responseData = await promise()
+      console.log('response data', responseData)
+      return responseData
+    }
+    // return doFetch
+    // const test = createResource(doFetch).read()
+    // console.log('TEST: ', test)
+    // return (...args) => createResource(doFetch(...args)).read(...args) as any
+    // return createResource(doFetch)(cache)
     return doFetch
 
-  }, [url, requestInit, isServer])
+  }, [initialURL, requestInit, isServer])
 
   const post = makeFetch(HTTPMethod.POST)
   const del = makeFetch(HTTPMethod.DELETE)
@@ -163,6 +280,11 @@ function useFetch<TData = any>(...args: UseFetchArgs): UseFetch<TData> {
     if (!onMount) return
     executeRequest()
   }, [onMount, executeRequest])
+
+  // handling onUnMount
+  // Cancel any running request when unmounting to avoid updating state after component has unmounted
+  // This can happen if a request's promise resolves after component unmounts
+  useEffect(() => request.abort, [])
 
   return Object.assign<UseFetchArrayReturn<TData>, UseFetchObjectReturn<TData>>(
     [request, makeResponseProxy(res), loading as boolean, error],

@@ -1,4 +1,4 @@
-import { OptionsMaybeURL, NoUrlOptions, Flatten } from './types'
+import { OptionsMaybeURL, NoUrlOptions, Flatten, CachePolicies } from './types'
 import { Interceptors, OverwriteGlobalOptions, Options } from './types'
 import { isString, isObject, invariant, pullOutRequestInit } from './utils'
 import { useContext, useMemo } from 'react'
@@ -17,6 +17,8 @@ type UseFetchArgsReturn = {
     interceptors: Interceptors
     onAbort: () => void
     onTimeout: () => void
+    suspense: boolean
+    cachePolicy: CachePolicies
   },
   requestInit: RequestInit
   defaults: {
@@ -30,12 +32,14 @@ export const useFetchArgsDefaults = {
     onMount: false,
     onUpdate: [],
     retries: 0,
-    timeout: 30000, // 30 seconds
+    timeout: 0, // 0 will never timeout
     path: '',
     url: '',
     interceptors: {},
     onAbort: () => {},
-    onTimeout: () => {}
+    onTimeout: () => {},
+    suspense: false,
+    cachePolicy: CachePolicies.CACHE_FIRST
   },
   requestInit: {
     headers: {
@@ -94,6 +98,8 @@ export default function useFetchArgs(
   const retries = useField<number>('retries', urlOrOptions, optionsNoURLs)
   const onAbort = useField<() => void>('onAbort', urlOrOptions, optionsNoURLs)
   const onTimeout = useField<() => void>('onTimeout', urlOrOptions, optionsNoURLs)
+  const suspense = useField<boolean>('suspense', urlOrOptions, optionsNoURLs)
+  const cachePolicy = useField<CachePolicies>('cachePolicy', urlOrOptions, optionsNoURLs)
 
   const loading = useMemo((): boolean => {
     if (isServer) return true
@@ -149,7 +155,9 @@ export default function useFetchArgs(
       timeout,
       retries,
       onAbort,
-      onTimeout
+      onTimeout,
+      suspense,
+      cachePolicy
     },
     requestInit,
     defaults: {

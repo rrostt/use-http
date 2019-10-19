@@ -6,6 +6,7 @@ import { FetchContextTypes, FetchProviderProps } from './types'
 export const Provider = ({
   url,
   options,
+  // suspense = false,
   graphql = false,
   children,
 }: FetchProviderProps): ReactElement => {
@@ -21,6 +22,8 @@ export const Provider = ({
   )
 
   return (
-    <FetchContext.Provider value={defaults}>{children}</FetchContext.Provider>
+    <FetchContext.Provider value={defaults}>
+      {children}
+    </FetchContext.Provider>
   )
 }

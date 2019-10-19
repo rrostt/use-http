@@ -9,6 +9,8 @@
     "url": "https://github.com/alex-cory/use-http.git"
   },
   "dependencies": {
+    "@types/deep-equal": "^1.0.1",
+    "deep-equal": "^1.1.0",
     "use-ssr": "^1.0.19"
   },
   "peerDependencies": {
@@ -40,9 +42,11 @@
     "jest-fetch-mock": "^2.1.2",
     "prettier": "^1.18.2",
     "react": "^16.8.6",
+    "react-cache": "^2.0.0-alpha.1",
     "react-dom": "^16.8.6",
     "react-hooks-testing-library": "^0.6.0",
     "react-test-renderer": "^16.8.6",
+    "simple-cache-provider": "^0.10.0",
     "ts-jest": "^24.0.0",
     "typescript": "^3.4.5",
     "watch": "^1.0.2"

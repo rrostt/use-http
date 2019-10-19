@@ -1,16 +1,18 @@
-import { HTTPMethod, Interceptors, ValueOf, RouteAndOptions } from './types'
+import { HTTPMethod, Interceptors, ValueOf, MakeFetchArgs } from './types'
 import { isObject, invariant, isBrowser, isString } from './utils'
 
-const { GET, OPTIONS } = HTTPMethod
+const { GET, OPTIONS, HEAD } = HTTPMethod
 
-export default async function makeRouteAndOptions(
+export default async function makeFetchArgs(
   initialOptions: RequestInit,
   method: HTTPMethod,
   controller: AbortController,
+  initialURL: string,
+  path: string,
   routeOrBody?: string | BodyInit | object,
   bodyAs2ndParam?: BodyInit | object,
-  requestInterceptor?: ValueOf<Pick<Interceptors, 'request'>>
-): Promise<RouteAndOptions> {
+  requestInterceptor?: ValueOf<Pick<Interceptors, 'request'>>,
+): Promise<MakeFetchArgs> {
   invariant(
     !(isObject(routeOrBody) && isObject(bodyAs2ndParam)),
     `If first argument of ${method.toLowerCase()}() is an object, you cannot have a 2nd argument. 😜`,
@@ -63,13 +65,10 @@ export default async function makeRouteAndOptions(
     ) {
       delete opts.headers['Content-Type']
     }
-    if (method === GET || method === OPTIONS) delete opts.body
+    if (method === GET || method === OPTIONS || method === HEAD) delete opts.body
     if (requestInterceptor) return await requestInterceptor(opts)
     return opts
   })()
 
-  return {
-    route,
-    options,
-  }
+  return { url: `${initialURL}${path}${route}`, options }
 }

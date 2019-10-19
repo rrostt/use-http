@@ -38,6 +38,7 @@ import { renderHook } from '@testing-library/react-hooks'
  * - FormData
  * - React Native
  * - more `interceptor` tests. Specifically for the `data` that is not in the `response` object
+ * - make sure request aborts when component unmounts
  */
 
 describe('useFetch - BROWSER - basic functionality', (): void => {
