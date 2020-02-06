@@ -676,6 +676,8 @@ This is exactly what you would pass to the normal js `fetch`, with a little extr
 
 | Option                | Description                                                               |  Default     |
 | --------------------- | --------------------------------------------------------------------------|------------- |
+| `cachePolicy` | These will be the same ones as Apollo's fetch policies. Possible values are `cache-and-network`, `network-only`, `cache-only`, `no-cache`, `cache-first`. Currently only supports **`cache-first`**  or **`no-cache`**      | `cache-first` |
+| `cacheLife` | After a successful cache update, that cache data will become stale after this duration       | `0` |
 | `url` | Allows you to set a base path so relative paths can be used for each request :)       | empty string |
 | `onNewData` | Merges the current data with the incoming data. Great for pagination.  | `(curr, new) => new` |
 | `onAbort` | Runs when the request is aborted. | empty function |
@@ -690,16 +692,13 @@ This is exactly what you would pass to the normal js `fetch`, with a little extr
 ```jsx
 const options = {
   // accepts all `fetch` options such as headers, method, etc.
-      
-  // These will be the exact same ones as Apollo's
-  // This defaults to 'cache-first' which dedupes requests done to the same endpoint.
-  // Only one request to the same endpoint will be initiated unless cacheLife expires for 'cache-first'.
+
   // Cache responses to improve speed and reduce amount of requests
+  // Only one request to the same endpoint will be initiated unless cacheLife expires for 'cache-first'.
   cachePolicy: 'cache-first' // 'no-cache'
 
   // The time in milliseconds that cache data remains fresh.
-  // After a successful cache update, that cache data will become stale after this duration
-  cacheLife: 10000,
+  cacheLife: 0,
 
   // used to be `baseUrl`. You can set your URL this way instead of as the 1st argument
   url: 'https://example.com',
