@@ -215,6 +215,7 @@ const App = () => (
 			<img src="public/ava-logo.png" width="130" alt="Ava">
 		</a>
 		<br>
+		<br>
 		<sub><b>Ava, Rapid Application Development</b></sub>
 		<br>
     <sub>
