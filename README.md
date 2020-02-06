@@ -218,7 +218,7 @@ const App = () => (
 		<sub><b>Ava, Rapid Application Development</b></sub>
 		<br>
     <sub>
-    Need a React/ReactNative freelance software engineer with more than 5 years production experience at companies like Facebook, Discord, and Best Buy?</br>
+    Need a freelance software engineer with more than 5 years production experience at companies like Facebook, Discord, and Best Buy?</br>
     <a href="https://ava.inc">website</a> | <a href="mailto:alex@ava.inc">email</a> | <a href="https://ava.inc">twitter</a>
     </sub>
 	</p>
@@ -690,7 +690,17 @@ This is exactly what you would pass to the normal js `fetch`, with a little extr
 ```jsx
 const options = {
   // accepts all `fetch` options such as headers, method, etc.
-  
+      
+  // These will be the exact same ones as Apollo's
+  // This defaults to 'cache-first' which dedupes requests done to the same endpoint.
+  // Only one request to the same endpoint will be initiated unless cacheLife expires for 'cache-first'.
+  // Cache responses to improve speed and reduce amount of requests
+  cachePolicy: 'cache-first' // 'no-cache'
+
+  // The time in milliseconds that cache data remains fresh.
+  // After a successful cache update, that cache data will become stale after this duration
+  cacheLife: 10000,
+
   // used to be `baseUrl`. You can set your URL this way instead of as the 1st argument
   url: 'https://example.com',
   
@@ -775,11 +785,10 @@ Todos
  - [ ] make GraphQL examples in codesandbox
  - [ ] Documentation:
      - [ ] show comparison with Apollo
-       - [ ] figure out a good way to show side-by-side comparisonsf
+       - [ ] figure out a good way to show side-by-side comparisons
      - [ ] show comparison with Axios
      - [ ] how this cancels a request on unmount of a component to avoid the error "cannot update state during a state transition" or something like that due to an incomplete http request
- - [ ] Dedupe requests done to the same endpoint. Only one request to the same endpoint will be initiated. [ref](https://www.npmjs.com/package/@bjornagh/use-fetch)
- - [ ] Cache responses to improve speed and reduce amount of requests
+ - [X] Dedupe requests done to the same endpoint. Only one request to the same endpoint will be initiated. [ref](https://www.npmjs.com/package/@bjornagh/use-fetch)
  - [ ] maybe add syntax for middle helpers for inline `headers` or `queries` like this:
 ```jsx
   const request = useFetch('https://example.com')
@@ -831,16 +840,7 @@ Todos
     perPage: 15,
     
     // these will be the exact same ones as Apollo's
-    // this will eventually default to 'cache-first'
-    cachePolicy: 'cache-first', // 'cache-first', 'cache-and-network', 'network-only', 'cache-only', 'no-cache'
-    
-    // The time in milliseconds that cache data remains fresh.
-    // After a successful cache update, that cache data will become stale after this duration
-    cacheTime: 10000,
-    
-    // The time in milliseconds that unused/inactive cache data remains in memory.
-    // When a query's cache becomes unused or inactive, that cache data will be garbage collected after this duration.
-    invalidateCacheTime: 10000,
+    cachePolicy: 'cache-and-network', 'network-only', 'cache-only', 'no-cache' // 'cache-first'
     
     // potential idea to fetch on server instead of just having `loading` state. Not sure if this is a good idea though
     onServer: true,
