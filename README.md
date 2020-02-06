@@ -203,12 +203,13 @@ const App = () => (
 	<br>
 	<hr>
 	<p>
-		<p>
+<!-- 		<p> -->
 			<sup>
 				<a href="https://github.com/sponsors/alex-cory">Consider sponsoring</a>
 			</sup>
-		</p>
+<!-- 		</p> -->
 		<!-- <sup>Special thanks to:</sup> -->
+		<br>
 		<br>
 		<a href="https://ava.inc">
 			<img src="public/ava-logo.png" width="130" alt="Ava">
