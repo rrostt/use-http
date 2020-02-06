@@ -218,7 +218,7 @@ const App = () => (
 		<sub><b>Ava, Rapid Application Development</b></sub>
 		<br>
     <sub>
-    Need a freelance software engineer with more than 5 years production experience at companies like Facebook, Discord, and Best Buy?</br>
+    Need a freelance software engineer with more than 5 years production experience at companies like Facebook, Discord, Best Buy, and Citrix?</br>
     <a href="https://ava.inc">website</a> | <a href="mailto:alex@ava.inc">email</a> | <a href="https://ava.inc">twitter</a>
     </sub>
 	</p>
